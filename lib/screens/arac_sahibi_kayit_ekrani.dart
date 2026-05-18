@@ -15,7 +15,10 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
   final _emailCtrl = TextEditingController();
   final _telCtrl = TextEditingController();
   final _sifreCtrl = TextEditingController();
+  final _plakaCtrl = TextEditingController();
+  final _markaModelCtrl = TextEditingController();
 
+  String _yakit = 'Benzin';
   bool _isLoading = false;
   bool _sifreGizli = true;
 
@@ -25,6 +28,8 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
     _emailCtrl.dispose();
     _telCtrl.dispose();
     _sifreCtrl.dispose();
+    _plakaCtrl.dispose();
+    _markaModelCtrl.dispose();
     super.dispose();
   }
 
@@ -53,6 +58,11 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
         'email': _emailCtrl.text.trim(),
         'telefon': _telCtrl.text.trim(),
         'rol': 'arac_sahibi',
+        'aracBilgisi': {
+          'plaka': _plakaCtrl.text.trim().toUpperCase(),
+          'markaModel': _markaModelCtrl.text.trim(),
+          'yakit': _yakit,
+        },
         'kayitTarihi': FieldValue.serverTimestamp(),
       });
 
@@ -95,6 +105,7 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Kişisel bilgiler
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -119,8 +130,8 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
                       obscureText: _sifreGizli,
                       decoration: InputDecoration(
                         labelText: 'Şifre (min 6 karakter)',
-                        prefixIcon:
-                            const Icon(Icons.lock_outline, color: AppColors.blue),
+                        prefixIcon: const Icon(Icons.lock_outline,
+                            color: AppColors.blue),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _sifreGizli
@@ -137,7 +148,51 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // Araç bilgileri
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Araç Bilgileri',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.navy)),
+                    const SizedBox(height: 4),
+                    const Text(
+                        'Sonradan profil ekranından güncelleyebilirsiniz.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 12),
+                    _input(_plakaCtrl, 'Araç Plakası (opsiyonel)',
+                        Icons.badge_outlined,
+                        caps: TextCapitalization.characters),
+                    const SizedBox(height: 12),
+                    _input(_markaModelCtrl, 'Marka / Model (opsiyonel)',
+                        Icons.directions_car_outlined),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: _yakit,
+                      decoration: const InputDecoration(
+                        labelText: 'Yakıt Tipi',
+                        prefixIcon: Icon(Icons.local_gas_station_outlined,
+                            color: AppColors.blue),
+                      ),
+                      items: ['Benzin', 'Dizel', 'Hibrit']
+                          .map((t) =>
+                              DropdownMenuItem(value: t, child: Text(t)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _yakit = v!),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -165,10 +220,12 @@ class _AracSahibiKayitEkraniState extends State<AracSahibiKayitEkrani> {
   }
 
   Widget _input(TextEditingController ctrl, String label, IconData ikon,
-      {TextInputType? keyboard}) {
+      {TextInputType? keyboard,
+      TextCapitalization caps = TextCapitalization.none}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboard,
+      textCapitalization: caps,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(ikon, color: AppColors.blue),
