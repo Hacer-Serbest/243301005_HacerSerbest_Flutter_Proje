@@ -17,8 +17,9 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
   int _sekme = 0; // 0: seçim, 1: araç güncelle, 2: süre güncelle
 
   final _plakaCtrl = TextEditingController();
+  final _markaModelCtrl = TextEditingController();
   final _sureCtrl = TextEditingController();
-  String _aracTipi = 'Benzinli';
+  String _yakit = 'Benzin';
 
   String? _aktifDocId;
   bool _isLoading = false;
@@ -33,6 +34,7 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
   @override
   void dispose() {
     _plakaCtrl.dispose();
+    _markaModelCtrl.dispose();
     _sureCtrl.dispose();
     super.dispose();
   }
@@ -40,18 +42,23 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
   Future<void> _verileriYukle() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
-    // Kullanıcı profilinden araç bilgilerini yükle
+    // Profildeki araç bilgilerini yükle
     if (uid != null) {
-      final userDoc = await FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection('kullanicilar')
           .doc(uid)
           .get();
-      if (userDoc.exists && mounted) {
-        final aracBilgisi =
-            (userDoc.data()!['aracBilgisi'] as Map<String, dynamic>?) ?? {};
+      if (doc.exists && mounted) {
+        final arac =
+            (doc.data()!['aracBilgisi'] as Map<String, dynamic>?) ?? {};
+        final savedYakit = (arac['yakit'] as String?) ??
+            (arac['aracTipi'] as String?) ?? 'Benzin';
         setState(() {
-          _plakaCtrl.text = (aracBilgisi['plaka'] as String?) ?? '';
-          _aracTipi = (aracBilgisi['aracTipi'] as String?) ?? 'Benzinli';
+          _plakaCtrl.text = (arac['plaka'] as String?) ?? '';
+          _markaModelCtrl.text = (arac['markaModel'] as String?) ?? '';
+          _yakit = ['Benzin', 'Dizel', 'Hibrit'].contains(savedYakit)
+              ? savedYakit
+              : 'Benzin';
         });
       }
     }
@@ -85,11 +92,15 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
         .update({
       'aracBilgisi': {
         'plaka': _plakaCtrl.text.trim().toUpperCase(),
-        'aracTipi': _aracTipi,
+        'markaModel': _markaModelCtrl.text.trim(),
+        'yakit': _yakit,
       }
     });
-    await LogService.log('arac_bilgisi_guncellendi',
-        detaylar: {'plaka': _plakaCtrl.text.trim(), 'aracTipi': _aracTipi});
+    await LogService.log('arac_bilgisi_guncellendi', detaylar: {
+      'plaka': _plakaCtrl.text.trim(),
+      'markaModel': _markaModelCtrl.text.trim(),
+      'yakit': _yakit,
+    });
     if (!mounted) return;
     setState(() => _isLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -184,7 +195,8 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
               decoration: BoxDecoration(
                 color: Colors.orange.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                border:
+                    Border.all(color: Colors.orange.withValues(alpha: 0.4)),
               ),
               child: const Row(
                 children: [
@@ -202,7 +214,7 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
           _secimKarti(
             Icons.directions_car_outlined,
             'Araç Bilgilerini Güncelle',
-            'Plaka veya araç tipini değiştirin.',
+            'Plaka, marka/model veya yakıt tipini değiştirin.',
             AppColors.blue,
             () => setState(() => _sekme = 1),
           ),
@@ -235,9 +247,10 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
                       fontSize: 16,
                       color: AppColors.navy)),
               const SizedBox(height: 4),
-              const Text('Profilinizde kayıtlı araç bilgileri güncellenecek.',
-                  style:
-                      TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const Text(
+                  'Profilinizde kayıtlı araç bilgileri güncellenecek.',
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary)),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _plakaCtrl,
@@ -249,18 +262,27 @@ class _AracBilgiDuzenleState extends State<AracBilgiDuzenle> {
                 ),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                key: ValueKey(_aracTipi),
-                initialValue: _aracTipi,
+              TextFormField(
+                controller: _markaModelCtrl,
                 decoration: const InputDecoration(
-                  labelText: 'Araç Tipi',
-                  prefixIcon:
-                      Icon(Icons.settings_outlined, color: AppColors.blue),
+                  labelText: 'Marka / Model',
+                  prefixIcon: Icon(Icons.directions_car_outlined,
+                      color: AppColors.blue),
                 ),
-                items: ['Benzinli', 'Dizel', 'Elektrikli', 'LPG']
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                key: ValueKey(_yakit),
+                initialValue: _yakit,
+                decoration: const InputDecoration(
+                  labelText: 'Yakıt Tipi',
+                  prefixIcon: Icon(Icons.local_gas_station_outlined,
+                      color: AppColors.blue),
+                ),
+                items: ['Benzin', 'Dizel', 'Hibrit']
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                     .toList(),
-                onChanged: (v) => setState(() => _aracTipi = v!),
+                onChanged: (v) => setState(() => _yakit = v!),
               ),
               const SizedBox(height: 24),
               SizedBox(

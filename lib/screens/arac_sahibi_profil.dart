@@ -18,8 +18,9 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
   final _sehirController = TextEditingController();
   final _telController = TextEditingController();
   final _plakaController = TextEditingController();
+  final _markaModelController = TextEditingController();
 
-  String _aracTipi = 'Benzinli';
+  String _yakit = 'Benzin';
   bool _yukleniyor = true;
   bool _kaydediliyor = false;
 
@@ -35,6 +36,7 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
     _sehirController.dispose();
     _telController.dispose();
     _plakaController.dispose();
+    _markaModelController.dispose();
     super.dispose();
   }
 
@@ -47,14 +49,19 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
         .get();
     if (doc.exists && mounted) {
       final data = doc.data()!;
-      final aracBilgisi =
-          (data['aracBilgisi'] as Map<String, dynamic>?) ?? {};
+      final arac = (data['aracBilgisi'] as Map<String, dynamic>?) ?? {};
       setState(() {
         _adController.text = data['adSoyad'] ?? '';
         _telController.text = data['telefon'] ?? '';
         _sehirController.text = data['sehir'] ?? '';
-        _plakaController.text = aracBilgisi['plaka'] ?? '';
-        _aracTipi = (aracBilgisi['aracTipi'] as String?) ?? 'Benzinli';
+        _plakaController.text = (arac['plaka'] as String?) ?? '';
+        _markaModelController.text = (arac['markaModel'] as String?) ?? '';
+        // eski 'aracTipi' alanından da okuyabilmek için fallback
+        final savedYakit = (arac['yakit'] as String?) ??
+            (arac['aracTipi'] as String?) ?? 'Benzin';
+        _yakit = ['Benzin', 'Dizel', 'Hibrit'].contains(savedYakit)
+            ? savedYakit
+            : 'Benzin';
         _yukleniyor = false;
       });
     }
@@ -73,7 +80,8 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
       'sehir': _sehirController.text.trim(),
       'aracBilgisi': {
         'plaka': _plakaController.text.trim().toUpperCase(),
-        'aracTipi': _aracTipi,
+        'markaModel': _markaModelController.text.trim(),
+        'yakit': _yakit,
       },
     });
     await LogService.log('profil_guncellendi');
@@ -148,6 +156,7 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
                           color: AppColors.textSecondary, fontSize: 13)),
                   const SizedBox(height: 24),
 
+                  // Kişisel bilgiler
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -174,6 +183,7 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Araç bilgileri
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -189,20 +199,24 @@ class _AracSahibiProfilState extends State<AracSahibiProfil> {
                               Icons.badge_outlined,
                               caps: TextCapitalization.characters),
                           const SizedBox(height: 12),
+                          _alan('Marka / Model', _markaModelController,
+                              Icons.directions_car_outlined),
+                          const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
-                            key: ValueKey(_aracTipi),
-                            initialValue: _aracTipi,
+                            key: ValueKey(_yakit),
+                            initialValue: _yakit,
                             decoration: const InputDecoration(
-                              labelText: 'Araç Tipi',
-                              prefixIcon: Icon(Icons.directions_car_outlined,
+                              labelText: 'Yakıt Tipi',
+                              prefixIcon: Icon(
+                                  Icons.local_gas_station_outlined,
                                   color: AppColors.blue),
                             ),
-                            items: ['Benzinli', 'Dizel', 'Elektrikli', 'LPG']
+                            items: ['Benzin', 'Dizel', 'Hibrit']
                                 .map((t) => DropdownMenuItem(
                                     value: t, child: Text(t)))
                                 .toList(),
                             onChanged: (v) =>
-                                setState(() => _aracTipi = v!),
+                                setState(() => _yakit = v!),
                           ),
                         ],
                       ),
