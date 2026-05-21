@@ -1,0 +1,35 @@
+# Build artifacts
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# Platform-specific native code (Claude doesn't need to read these)
+android/
+ios/
+linux/
+macos/
+web/
+windows/
+
+# Generated & auto-created files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+lib/firebase_options.dart
+
+# IDE metadata
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Lock files (pubspec.yaml yeterli)
+pubspec.lock
+
+# Coverage & test output
+coverage/
+
+# Assets (binary)
+assets/icon/

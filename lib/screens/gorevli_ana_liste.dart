@@ -22,6 +22,7 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
   String otoparkAdi = '';
   int kapasite = 0;
   bool _yukleniyor = true;
+  Stream<QuerySnapshot>? _araclarStream;
 
   @override
   void initState() {
@@ -37,20 +38,29 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
 
   Future<void> _otoparkBilgileriniGetir() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      if (mounted) setState(() => _yukleniyor = false);
+      return;
+    }
     final doc = await FirebaseFirestore.instance
         .collection('kullanicilar')
         .doc(uid)
         .get();
-    if (doc.exists && mounted) {
-      final otopark =
-          (doc.data()!['otoparkBilgisi'] as Map<String, dynamic>?) ?? {};
-      setState(() {
-        otoparkAdi = otopark['otoparkAdi'] ?? 'Otopark';
-        kapasite = otopark['kapasite'] ?? 0;
-        _yukleniyor = false;
-      });
-    }
+    if (!mounted) return;
+    final otopark = doc.exists
+        ? (doc.data()!['otoparkBilgisi'] as Map<String, dynamic>?) ?? {}
+        : <String, dynamic>{};
+    final yeniAd = (otopark['otoparkAdi'] as String?) ?? 'Otopark';
+    setState(() {
+      otoparkAdi = yeniAd;
+      kapasite = (otopark['kapasite'] as num?)?.toInt() ?? 0;
+      _araclarStream = FirebaseFirestore.instance
+          .collection('araclar')
+          .where('otoparkAdi', isEqualTo: yeniAd)
+          .where('cikisYapildi', isEqualTo: false)
+          .snapshots();
+      _yukleniyor = false;
+    });
   }
 
   Future<void> _cikisYap() async {
@@ -63,12 +73,13 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
 
   void _cikisDialog(Map<String, dynamic> veri, String docId) {
     final girisSaati = veri['girisSaati'] as Timestamp?;
+    final saatlikUcret = (veri['saatlikUcret'] as num?)?.toInt() ?? 40;
     int farkSaat = 1;
     if (girisSaati != null) {
       farkSaat = DateTime.now().difference(girisSaati.toDate()).inHours;
       if (farkSaat < 1) farkSaat = 1;
     }
-    final ucret = farkSaat * 40;
+    final ucret = farkSaat * saatlikUcret;
 
     showDialog(
       context: context,
@@ -104,7 +115,7 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: AppColors.orange)),
-                  Text('$farkSaat saat × 40 TL',
+                  Text('$farkSaat saat × $saatlikUcret TL',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textSecondary)),
                 ],
@@ -152,7 +163,8 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        flexibleSpace: Container(decoration: AppTheme.gradientHeader(dark: true)),
+        flexibleSpace:
+            Container(decoration: AppTheme.gradientHeader(dark: true)),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -206,18 +218,42 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                 ),
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('araclar')
-                        .where('otoparkAdi', isEqualTo: otoparkAdi)
-                        .where('cikisYapildi', isEqualTo: false)
-                        .orderBy('girisSaati', descending: true)
-                        .snapshots(),
+                    stream: _araclarStream,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: AppColors.red, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Veri yüklenemedi:\n${snapshot.error}',
+                                  style: const TextStyle(
+                                      color: AppColors.textSecondary),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
 
-                      final tumAraclar = snapshot.data?.docs ?? [];
+                      final tumAraclar = (snapshot.data?.docs ?? [])
+                        ..sort((a, b) {
+                          final ta =
+                              (a.data() as Map)['girisSaati'] as Timestamp?;
+                          final tb =
+                              (b.data() as Map)['girisSaati'] as Timestamp?;
+                          if (ta == null || tb == null) return 0;
+                          return tb.compareTo(ta);
+                        });
                       final dolu = tumAraclar.length;
                       final bos = kapasite - dolu;
                       final dolulukOrani =
@@ -232,12 +268,12 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
 
                       return Column(
                         children: [
-                          // Kapasite kartı
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             child: Container(
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
+                                gradient: const LinearGradient(
                                   colors: [AppColors.navy, AppColors.blue],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -275,8 +311,7 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                               BorderRadius.circular(4),
                                           child: LinearProgressIndicator(
                                             value: dolulukOrani,
-                                            backgroundColor:
-                                                Colors.white24,
+                                            backgroundColor: Colors.white24,
                                             valueColor:
                                                 AlwaysStoppedAnimation(
                                                     dolulukOrani > 0.8
@@ -315,7 +350,8 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.no_crash_outlined,
-                                        size: 72, color: Colors.grey.shade300),
+                                        size: 72,
+                                        color: Colors.grey.shade300),
                                     const SizedBox(height: 12),
                                     Text(
                                         _arama.isEmpty
@@ -344,11 +380,23 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                     saatStr =
                                         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
                                   }
+                                  final tahminiSure =
+                                      (veri['tahminiSureSaat'] as num?)
+                                              ?.toInt() ??
+                                          1;
+                                  final saatlikUcret =
+                                      (veri['saatlikUcret'] as num?)
+                                              ?.toInt() ??
+                                          40;
+                                  final tahminiUcret =
+                                      tahminiSure * saatlikUcret;
 
                                   return Card(
-                                    margin: const EdgeInsets.only(bottom: 10),
+                                    margin:
+                                        const EdgeInsets.only(bottom: 10),
                                     child: InkWell(
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius:
+                                          BorderRadius.circular(16),
                                       onTap: () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -360,10 +408,9 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                         padding: const EdgeInsets.all(14),
                                         child: Row(
                                           children: [
-                                            // Sol renk çizgisi
                                             Container(
                                               width: 4,
-                                              height: 52,
+                                              height: 74,
                                               decoration: BoxDecoration(
                                                 color: AppColors.blue,
                                                 borderRadius:
@@ -381,11 +428,11 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                                     style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      fontSize: 19,
+                                                      fontSize: 18,
                                                       color: AppColors.navy,
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 2),
+                                                  const SizedBox(height: 3),
                                                   Row(
                                                     children: [
                                                       const Icon(
@@ -394,15 +441,23 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                                           color: AppColors
                                                               .textSecondary),
                                                       const SizedBox(width: 3),
-                                                      Text(
-                                                        veri['sahibiAdSoyad'] ??
-                                                            '-',
-                                                        style: const TextStyle(
-                                                            color: AppColors
-                                                                .textSecondary,
-                                                            fontSize: 13),
+                                                      Expanded(
+                                                        child: Text(
+                                                          veri['sahibiAdSoyad'] ??
+                                                              '-',
+                                                          style: const TextStyle(
+                                                              color: AppColors
+                                                                  .textSecondary,
+                                                              fontSize: 12),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
                                                       ),
-                                                      const SizedBox(width: 10),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 3),
+                                                  Row(
+                                                    children: [
                                                       const Icon(
                                                           Icons
                                                               .access_time_outlined,
@@ -414,12 +469,30 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                                           style: const TextStyle(
                                                               color: AppColors
                                                                   .textSecondary,
-                                                              fontSize: 13)),
+                                                              fontSize: 12)),
+                                                      const SizedBox(width: 8),
+                                                      const Icon(
+                                                          Icons
+                                                              .payments_outlined,
+                                                          size: 13,
+                                                          color:
+                                                              AppColors.orange),
+                                                      const SizedBox(width: 3),
+                                                      Text(
+                                                        'Tahmini: $tahminiUcret TL',
+                                                        style: const TextStyle(
+                                                            color:
+                                                                AppColors.orange,
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight
+                                                                .w600),
+                                                      ),
                                                     ],
                                                   ),
                                                 ],
                                               ),
                                             ),
+                                            const SizedBox(width: 8),
                                             ElevatedButton(
                                               onPressed: () =>
                                                   _cikisDialog(veri, doc.id),
@@ -435,8 +508,7 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
                                                     MaterialTapTargetSize
                                                         .shrinkWrap,
                                               ),
-                                              child:
-                                                  const Text('Çıkış'),
+                                              child: const Text('Çıkış'),
                                             ),
                                           ],
                                         ),
@@ -462,7 +534,8 @@ class _GorevliAnaListeState extends State<GorevliAnaListe> {
         backgroundColor: AppColors.orange,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Araç Ekle', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('Araç Ekle',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

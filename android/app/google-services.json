@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "909755155985",
+    "project_id": "hacer-serbest-243301005",
+    "storage_bucket": "hacer-serbest-243301005.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:909755155985:android:970a70971ed28c474b13b0",
+        "android_client_info": {
+          "package_name": "com.example.ogrencino_hacerserbest_flutter_proje"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1-yddw7td4Ph1bA3LN5j34pOAKaymt84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
