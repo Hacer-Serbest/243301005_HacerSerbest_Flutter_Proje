@@ -129,5 +129,9 @@ loglar/{docId}
 
 ## Ekran Görüntüleri
 
-> `screenshots/` klasörü oluşturup aşağıdaki ekranlardan görüntü ekleyin:
+| | | |
+|:---:|:---:|:---:|
+| ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122156.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122208.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122217.png) |
+| ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122228.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122238.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122245.png) |
+| ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122256.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122632.png) | ![](screenshots/Ekran%20görüntüsü%202026-05-22%20122701.png) |
 
