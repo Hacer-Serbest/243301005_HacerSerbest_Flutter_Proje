@@ -50,14 +50,24 @@
 
 ## Kullanılan Paketler
 
+### Bağımlılıklar
+
 | Paket | Versiyon | Açıklama |
 |-------|----------|----------|
-| `firebase_core` | ^4.7.0 | Firebase başlatma |
-| `firebase_auth` | ^6.4.0 | Kimlik doğrulama |
-| `cloud_firestore` | ^6.3.0 | Gerçek zamanlı veritabanı |
+| `firebase_core` | ^4.7.0 | Firebase başlatma ve yapılandırma |
+| `firebase_auth` | ^6.4.0 | E-posta/şifre ile kimlik doğrulama |
+| `cloud_firestore` | ^6.3.0 | Gerçek zamanlı NoSQL veritabanı |
+| `supabase_flutter` | ^2.12.4 | Ek backend desteği |
 | `logger` | ^2.7.0 | Konsol loglama |
-| `font_awesome_flutter` | ^11.0.0 | İkon seti |
-| `cupertino_icons` | ^1.0.8 | iOS ikonları |
+| `font_awesome_flutter` | ^11.0.0 | Genişletilmiş ikon seti |
+| `cupertino_icons` | ^1.0.8 | iOS tarzı ikonlar |
+
+### Geliştirme Bağımlılıkları
+
+| Paket | Versiyon | Açıklama |
+|-------|----------|----------|
+| `flutter_lints` | ^6.0.0 | Kod kalitesi kuralları |
+| `flutter_launcher_icons` | ^0.14.3 | Uygulama ikonu oluşturma |
 
 ---
 
